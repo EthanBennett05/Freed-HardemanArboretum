@@ -1,3 +1,4 @@
+// ---------- Configuration & State ----------
 const CAMPUS_BOUNDS = {
   north: 35.4430,
   south: 35.4355,
@@ -5,18 +6,19 @@ const CAMPUS_BOUNDS = {
   west: -88.641471
 };
 
-let map, db, canEdit = false, userEmail = "";
+let map, db, canEdit = false, userEmail = "", currentUser = null;
 let AdvancedMarkerElement, PinElement;
-let trees = [];            // { id, tag, species, notes, lat, lng, marker }
+let trees = []; // { id, tag, species, notes, lat, lng, marker }
 let selected = null;
 let adding = false;
 let delArmed = false, delTimer = null;
 
+// Helper utilities
 const $ = (s) => document.querySelector(s);
 const setStatus = (m) => ($("#status").textContent = m);
 const num = (v) => (typeof v === "function" ? v() : v);
 
-// ---------- Init ----------
+// ---------- Map Initialization ----------
 window.initMap = async function () {
   await customElements.whenDefined("gmp-map");
   map = $("#map").innerMap;
@@ -29,9 +31,9 @@ window.initMap = async function () {
     mapTypeId: "satellite",
     streetViewControl: false
   });
+
   map.addListener("click", onMapClick);
   wireUi();
-  buildAuthUi();
 
   const { SUPABASE_URL: url, SUPABASE_ANON_KEY: key } = window.APP_CONFIG || {};
   if (!url || !key || url.includes("YOUR_")) {
@@ -53,53 +55,83 @@ function wireUi() {
   $("#btnClose").addEventListener("click", deselect);
   $("#keySearch").addEventListener("input", refreshKey);
   document.addEventListener("keydown", (e) => e.key === "Escape" && setAdding(false));
+
+  // --- Auth Button Handlers ---
+  $("#btnShowLogin")?.addEventListener("click", async () => {
+    const { error } = await db.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: window.location.origin }
+    });
+    if (error) setStatus("Sign-in failed: " + error.message);
+  });
+
+  $("#btnSignOut")?.addEventListener("click", async () => {
+    const { error } = await db.auth.signOut();
+    if (error) setStatus("Sign-out failed: " + error.message);
+  });
 }
 
-// ---------- Admin auth ----------
+// ---------- Authentication UI & Logic ----------
 function buildAuthUi() {
-  const bar = $(".toolbar");
+  const authContainer = document.querySelector(".user-auth") || document.querySelector("header");
 
+  // Sign In Button
   const login = document.createElement("button");
   login.id = "btnShowLogin";
   login.textContent = "Admin sign in with Google";
 
-  const out = document.createElement("button");
-  out.id = "btnSignOut";
-  out.textContent = "Sign out";
-  out.hidden = true;
+  // User Profile Container
+  const userProfile = document.createElement("div");
+  userProfile.id = "userProfile";
+  userProfile.className = "user-profile";
+  userProfile.hidden = true;
+
+  // Profile Avatar Image
+  const avatar = document.createElement("img");
+  avatar.id = "userAvatar";
+  avatar.className = "avatar";
+  avatar.alt = "Profile Picture";
+
+  // Profile Details Container
+  const userDetails = document.createElement("div");
+  userDetails.className = "user-details";
 
   const label = document.createElement("span");
   label.id = "userLabel";
-  label.className = "muted";
 
-  bar.append(label, login, out);
+  const out = document.createElement("button");
+  out.id = "btnSignOut";
+  out.className = "btn-link";
+  out.textContent = "Sign out";
 
+  // Assemble Profile Component
+  userDetails.append(label, out);
+  userProfile.append(avatar, userDetails);
+
+  if (authContainer) {
+    authContainer.append(login, userProfile);
+  }
+
+  // Auth Event Listeners
   login.addEventListener("click", async () => {
     const { error } = await db.auth.signInWithOAuth({
       provider: "google",
-      options: {
-        redirectTo: window.location.origin,
-      },
+      options: { redirectTo: window.location.origin }
     });
-
-    if (error) {
-      setStatus("Sign-in failed: " + error.message);
-    }
+    if (error) setStatus("Sign-in failed: " + error.message);
   });
 
   out.addEventListener("click", async () => {
     const { error } = await db.auth.signOut();
-
-    if (error) {
-      setStatus("Sign-out failed: " + error.message);
-    }
+    if (error) setStatus("Sign-out failed: " + error.message);
   });
 }
 
-// Signed in AND listed in the admins table (checked by the database) = can edit.
 async function applySession(session) {
-  userEmail = session?.user?.email ?? "";
+  currentUser = session?.user ?? null;
+  userEmail = currentUser?.email ?? "";
   canEdit = false;
+
   if (session) {
     const { data, error } = await db.rpc("is_admin");
     canEdit = !error && data === true;
@@ -108,14 +140,28 @@ async function applySession(session) {
 }
 
 function renderAuth() {
-  if ($("#btnAddTree")) $("#btnAddTree").hidden = !canEdit;
-  if ($("#btnShowLogin")) $("#btnShowLogin").hidden = !!userEmail;
-  if ($("#btnSignOut")) $("#btnSignOut").hidden = !userEmail;
-  if ($("#userLabel")) $("#userLabel").textContent = userEmail ? `${userEmail} (${canEdit ? "admin" : "view only"})` : "";
-  
-  // Safe guard or remove if loginForm is no longer in your HTML
-  if ($("#loginForm")) $("#loginForm").hidden = !!userEmail;
+  const loginBtn = $("#btnShowLogin");
+  const userProfile = $("#userProfile");
+  const userLabel = $("#userLabel");
+  const avatar = $("#userAvatar");
 
+  if (currentUser) {
+    if (loginBtn) loginBtn.hidden = true;
+    if (userProfile) userProfile.hidden = false;
+    if (userLabel) userLabel.textContent = `${userEmail} (${canEdit ? "admin" : "view only"})`;
+
+    const avatarUrl = currentUser.user_metadata?.avatar_url || currentUser.user_metadata?.picture;
+    if (avatar && avatarUrl) {
+      avatar.src = avatarUrl;
+    }
+  } else {
+    if (loginBtn) loginBtn.hidden = false;
+    if (userProfile) userProfile.hidden = true;
+    if (userLabel) userLabel.textContent = "";
+  }
+
+  // Update editing permissions across controls
+  if ($("#btnAddTree")) $("#btnAddTree").hidden = !canEdit;
   if (!canEdit) setAdding(false);
 
   ["#fTag", "#fSpecies", "#fNotes"].forEach((s) => {
@@ -130,10 +176,11 @@ function renderAuth() {
   trees.forEach((t) => (t.marker.gmpDraggable = canEdit && t === selected));
 }
 
-// ---------- Data ----------
+// ---------- Database & Tree Operations ----------
 async function loadTrees() {
   const { data, error } = await db.from("trees").select("*").order("tag");
   if (error) return setStatus("Could not load trees: " + error.message);
+  
   trees.forEach((t) => (t.marker.map = null));
   trees = [];
   data.forEach(addTree);
@@ -150,14 +197,16 @@ function addTree(row) {
     gmpClickable: true,
     gmpDraggable: false
   });
+
   t.marker.addEventListener("gmp-click", () => select(t));
-  t.marker.addListener("dragend", async () => {
+  t.marker.addEventListener("dragend", async () => {
     t.lat = num(t.marker.position.lat);
     t.lng = num(t.marker.position.lng);
     if (selected === t) showCoords(t);
     const { error } = await db.from("trees").update({ lat: t.lat, lng: t.lng }).eq("id", t.id);
     if (error) setStatus("Could not save new position: " + error.message);
   });
+
   trees.push(t);
   return t;
 }
@@ -165,12 +214,14 @@ function addTree(row) {
 async function onMapClick(e) {
   if (!adding || !canEdit) return;
   setAdding(false);
+
   const row = { tag: nextTag(), species: "", notes: "", lat: e.latLng.lat(), lng: e.latLng.lng() };
   const { data, error } = await db.from("trees").insert(row).select().single();
   if (error) return setStatus("Could not add tree: " + error.message);
+
   const t = addTree(data);
   select(t);
-  setStatus(`Added ${t.tag}. Fill in its details and Save.`);
+  setStatus(`Added ${t.tag}. Fill in details and click Save.`);
 }
 
 function nextTag() {
@@ -186,9 +237,11 @@ async function saveTree() {
   if (trees.some((t) => t !== selected && t.tag.toLowerCase() === tag.toLowerCase())) {
     return showError(`ID "${tag}" is already used.`);
   }
+
   const fields = { tag, species: $("#fSpecies").value.trim(), notes: $("#fNotes").value };
   const { error } = await db.from("trees").update(fields).eq("id", selected.id).select().single();
   if (error) return showError(error.code === "23505" ? `ID "${tag}" is already used.` : error.message);
+
   Object.assign(selected, fields);
   selected.marker.title = label(selected);
   showError("");
@@ -196,7 +249,6 @@ async function saveTree() {
   setStatus(`Saved ${tag}.`);
 }
 
-// Delete: first click arms the button, second click (within 3s) deletes. No alert box.
 function onDeleteClick() {
   if (!selected || !canEdit) return;
   if (!delArmed) {
@@ -219,27 +271,21 @@ async function deleteTree() {
   const t = selected;
   const { data, error } = await db.from("trees").delete().eq("id", t.id).select();
   if (error || !data.length) return showError(error ? error.message : "Not allowed to delete.");
+
   t.marker.map = null;
   trees = trees.filter((x) => x !== t);
   deselect();
   setStatus(`Deleted ${t.tag}.`);
 }
 
-// ---------- Selection / editor ----------
-// CHANGE THIS:
-function label(t) {
-  return t.species ? `${t.tag}
-${t.species}` : t.tag;
-}
-
-// TO THIS:
+// ---------- Selection & Editor Panel ----------
 function label(t) {
   return t.species ? `${t.tag}\n${t.species}` : t.tag;
 }
 
 function pin(sel) {
   return new PinElement({
-    background: sel ? "#f9ab00" : "#188038",
+    background: sel ? "#c59b27" : "#701422", // FHU Gold for selected, FHU Maroon for markers
     borderColor: "#ffffff",
     glyphColor: "#ffffff",
     scale: sel ? 1.3 : 1
@@ -254,12 +300,15 @@ function select(t) {
   $("#fNotes").value = t.notes;
   showError("");
   showCoords(t);
+
   $("#editor").hidden = false;
   $("#hint").hidden = true;
+
   trees.forEach((x) => {
     x.marker.content = pin(x === t);
     x.marker.gmpDraggable = canEdit && x === t;
   });
+
   refreshKey();
   $("#keyList .chip.active")?.scrollIntoView({ block: "nearest" });
 }
@@ -269,10 +318,12 @@ function deselect() {
   selected = null;
   $("#editor").hidden = true;
   $("#hint").hidden = false;
+
   trees.forEach((x) => {
     x.marker.content = pin(false);
     x.marker.gmpDraggable = false;
   });
+
   refreshKey();
 }
 
@@ -288,10 +339,10 @@ function setAdding(v) {
   adding = v;
   $("#btnAddTree").classList.toggle("active", v);
   $("#btnCancel").hidden = !v;
-  if (v) setStatus("Click the map where the tree is.");
+  if (v) setStatus("Click the map where the tree is located.");
 }
 
-// ---------- Interactive key ----------
+// ---------- Interactive Species Key ----------
 function refreshKey() {
   const q = $("#keySearch").value.trim().toLowerCase();
   const shown = trees
@@ -302,6 +353,7 @@ function refreshKey() {
 
   const list = $("#keyList");
   list.replaceChildren();
+
   if (!shown.length) {
     const p = document.createElement("p");
     p.className = "muted";
@@ -312,16 +364,20 @@ function refreshKey() {
   shown.forEach((t) => {
     const chip = document.createElement("button");
     chip.className = "chip" + (t === selected ? " active" : "");
+
     const tag = document.createElement("strong");
     tag.textContent = t.tag;
+
     const sp = document.createElement("span");
     sp.textContent = t.species || "(unnamed)";
+
     chip.append(tag, sp);
     chip.addEventListener("click", () => {
       map.panTo({ lat: t.lat, lng: t.lng });
       if (map.getZoom() < 19) map.setZoom(19);
       select(t);
     });
+
     list.append(chip);
   });
 }

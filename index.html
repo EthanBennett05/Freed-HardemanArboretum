@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Freed-Hardeman Arboretum</title>
   <link rel="stylesheet" href="./styles.css" />
+  <link rel="icon" type="image/jpeg" href="imgs/Logo.jpeg">
+  
   
   <!-- Supabase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
@@ -32,16 +34,34 @@
 </head>
 <body>
   <header>
-    <div class="header-title">
+  <div class="header-top">
+    <!-- Brand / Logo -->
+    <div class="brand">
+      <img src="imgs/Logo.jpeg" alt="Freed-Hardeman Arboretum" class="logo">
       <h2>Freed-Hardeman Arboretum</h2>
-      <p id="status" class="status-msg"></p>
     </div>
-    <div class="toolbar">
-      <button id="btnAddTree" hidden>Add Tree</button>
-      <button id="btnCancel" hidden>Cancel</button>
-      <span class="spacer"></span>
+
+    <!-- User Auth / Sign Out (Top Right) -->
+    <div class="user-auth">
+      <button id="btnShowLogin">Admin sign in with Google</button>
+
+      <div id="userProfile" class="user-profile" hidden>
+        <img id="userAvatar" class="avatar" src="" alt="Profile Picture">
+        <div class="user-details">
+          <span id="userLabel"></span>
+          <button id="btnSignOut" class="btn-link">Sign out</button>
+        </div>
+      </div>
     </div>
-  </header>
+  </div>
+
+  <!-- Action Toolbar (Underneath Header) -->
+  <div class="toolbar">
+    <button id="btnAddTree" hidden>+ Add Tree</button>
+    <button id="btnCancel" hidden>Cancel</button>
+    <p id="status" class="status-msg"></p>
+  </div>
+</header>
 
   <main>
     <div class="left">
