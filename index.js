@@ -73,60 +73,6 @@ function wireUi() {
 }
 
 // ---------- Authentication UI & Logic ----------
-function buildAuthUi() {
-  const authContainer = document.querySelector(".user-auth") || document.querySelector("header");
-
-  // Sign In Button
-  const login = document.createElement("button");
-  login.id = "btnShowLogin";
-  login.textContent = "Admin sign in with Google";
-
-  // User Profile Container
-  const userProfile = document.createElement("div");
-  userProfile.id = "userProfile";
-  userProfile.className = "user-profile";
-  userProfile.hidden = true;
-
-  // Profile Avatar Image
-  const avatar = document.createElement("img");
-  avatar.id = "userAvatar";
-  avatar.className = "avatar";
-  avatar.alt = "Profile Picture";
-
-  // Profile Details Container
-  const userDetails = document.createElement("div");
-  userDetails.className = "user-details";
-
-  const label = document.createElement("span");
-  label.id = "userLabel";
-
-  const out = document.createElement("button");
-  out.id = "btnSignOut";
-  out.className = "btn-link";
-  out.textContent = "Sign out";
-
-  // Assemble Profile Component
-  userDetails.append(label, out);
-  userProfile.append(avatar, userDetails);
-
-  if (authContainer) {
-    authContainer.append(login, userProfile);
-  }
-
-  // Auth Event Listeners
-  login.addEventListener("click", async () => {
-    const { error } = await db.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: window.location.origin }
-    });
-    if (error) setStatus("Sign-in failed: " + error.message);
-  });
-
-  out.addEventListener("click", async () => {
-    const { error } = await db.auth.signOut();
-    if (error) setStatus("Sign-out failed: " + error.message);
-  });
-}
 
 async function applySession(session) {
   currentUser = session?.user ?? null;

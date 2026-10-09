@@ -1,0 +1,5 @@
+window.APP_CONFIG = {
+  GOOGLE_MAPS_API_KEY: "YOUR_GOOGLE_MAPS_API_KEY",
+  SUPABASE_URL: "https://your-project.supabase.co",
+  SUPABASE_ANON_KEY: "YOUR_SUPABASE_ANON_KEY"
+};

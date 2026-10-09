@@ -158,6 +158,13 @@ button {
   transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
+#fTag {
+  user-select: none;
+  background: #f1f3f4;
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
 button:hover {
   background: var(--bg-hover);
 }
