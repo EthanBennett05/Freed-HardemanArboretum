@@ -25,12 +25,13 @@ window.initMap = async function () {
   ({ AdvancedMarkerElement, PinElement } = await google.maps.importLibrary("marker"));
 
   map.setOptions({
-    restriction: { latLngBounds: CAMPUS_BOUNDS, strictBounds: true },
-    minZoom: 16,
-    maxZoom: 20,
-    mapTypeId: "satellite",
-    streetViewControl: false
-  });
+  restriction: { latLngBounds: CAMPUS_BOUNDS, strictBounds: true },
+  minZoom: 16,
+  maxZoom: 20,
+  mapTypeId: "satellite",     // Satellite imagery without road/place labels
+  disableDefaultUI: true,     // Removes Map/Satellite dropdown, Street View, and Fullscreen buttons
+  zoomControl: true           // (Optional) Keeps simple + / - zoom buttons visible
+});
 
   map.addListener("click", onMapClick);
   wireUi();
@@ -253,7 +254,7 @@ function onDeleteClick() {
   if (!selected || !canEdit) return;
   if (!delArmed) {
     delArmed = true;
-    $("#btnDelete").textContent = "Click again to confirm";
+    $("#btnDelete").textContent = "Confirm Delete";
     delTimer = setTimeout(disarmDelete, 3000);
     return;
   }
@@ -343,11 +344,18 @@ function setAdding(v) {
 }
 
 // ---------- Interactive Species Key ----------
+// ---------- Interactive Species Key ----------
 function refreshKey() {
   const q = $("#keySearch").value.trim().toLowerCase();
+  
+  // Filter and sort by Species Name first, then Tag ID
   const shown = trees
     .filter((t) => !q || `${t.tag} ${t.species} ${t.notes}`.toLowerCase().includes(q))
-    .sort((a, b) => a.tag.localeCompare(b.tag, undefined, { numeric: true }));
+    .sort((a, b) => {
+      const nameA = a.species || "Unknown Species";
+      const nameB = b.species || "Unknown Species";
+      return nameA.localeCompare(nameB) || a.tag.localeCompare(b.tag, undefined, { numeric: true });
+    });
 
   $("#keyCount").textContent = q ? `(${shown.length} of ${trees.length})` : `(${trees.length})`;
 
@@ -365,13 +373,13 @@ function refreshKey() {
     const chip = document.createElement("button");
     chip.className = "chip" + (t === selected ? " active" : "");
 
-    const tag = document.createElement("strong");
+    const name = document.createElement("strong");
+    name.textContent = t.species || "Unknown Species";
+
+    const tag = document.createElement("span");
     tag.textContent = t.tag;
 
-    const sp = document.createElement("span");
-    sp.textContent = t.species || "(unnamed)";
-
-    chip.append(tag, sp);
+    chip.append(name, tag);
     chip.addEventListener("click", () => {
       map.panTo({ lat: t.lat, lng: t.lng });
       if (map.getZoom() < 19) map.setZoom(19);
