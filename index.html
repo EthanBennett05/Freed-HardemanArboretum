@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Freed-Hardeman Arboretum</title>
+  <link rel="stylesheet" href="./styles.css" />
+  
+  <!-- Supabase SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+  
+  <!-- Config file (defines window.APP_CONFIG) -->
+  <script src="./config.js"></script>
+  
+  <!-- Main Application Logic -->
+  <script src="./index.js" defer></script>
+
+  <!-- Dynamic Google Maps Loader -->
+  <script>
+    (function loadGoogleMaps() {
+      const apiKey = window.APP_CONFIG?.GOOGLE_MAPS_API_KEY;
+      if (!apiKey || apiKey.includes("YOUR_")) {
+        console.warn("Google Maps API key is missing from config.js.");
+        return;
+      }
+      const script = document.createElement("script");
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=maps,marker&v=weekly&loading=async&callback=initMap`;
+      script.async = true;
+      document.head.appendChild(script);
+    })();
+  </script>
+</head>
+<body>
+  <header>
+    <div class="header-title">
+      <h2>Freed-Hardeman Arboretum</h2>
+      <p id="status" class="status-msg"></p>
+    </div>
+    <div class="toolbar">
+      <button id="btnAddTree" hidden>Add Tree</button>
+      <button id="btnCancel" hidden>Cancel</button>
+      <span class="spacer"></span>
+    </div>
+  </header>
+
+  <main>
+    <div class="left">
+      <gmp-map id="map" center="35.4423,-88.6370" zoom="17" map-id="DEMO_MAP_ID"></gmp-map>
+
+      <section id="key">
+        <div class="keyHead">
+          <h3>Tree key <span id="keyCount" class="muted"></span></h3>
+          <input id="keySearch" type="search" placeholder="Search by ID, species, notes" aria-label="Search trees" />
+        </div>
+        <div id="keyList"></div>
+      </section>
+    </div>
+
+    <aside id="panel">
+      <p id="hint" class="muted">Click a tree on the map or in the key to see its details.</p>
+      
+      <section id="editor" hidden>
+        <h3>Tree details</h3>
+        
+        <label for="fTag">ID</label>
+        <input id="fTag" type="text" maxlength="40" autocomplete="off" />
+
+        <label for="fSpecies">Species / name</label>
+        <input id="fSpecies" type="text" maxlength="100" autocomplete="off" />
+
+        <label for="fNotes">Notes</label>
+        <textarea id="fNotes" rows="6"></textarea>
+
+        <p id="fCoords" class="muted"></p>
+        <p id="editorError" class="error"></p>
+
+        <div class="row">
+          <button id="btnSave">Save</button>
+          <button id="btnDelete" class="danger">Delete</button>
+          <button id="btnClose">Close</button>
+        </div>
+        
+        <p class="muted" id="dragTip">Tip: drag a marker to move it.</p>
+      </section>
+    </aside>
+  </main>
+</body>
+</html>
