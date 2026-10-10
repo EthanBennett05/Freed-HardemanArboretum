@@ -30,7 +30,7 @@
   /* Layout */
   --gap: 12px;
   --sidebar-width: 360px;
-  --panel-width: 320px;
+  --panel-width: 300px;
 
   /* Type */
   --font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -387,7 +387,7 @@ main {
   width: var(--panel-width);
   max-height: calc(100% - 2 * var(--gap) - 110px); /* leave room for the zoom buttons */
   overflow-y: auto;
-  padding: 18px 18px 24px;
+  padding: 14px 16px 16px;
   background: var(--surface);
   border-top: 4px solid var(--fhu-gold);
   border-radius: var(--radius-md);
@@ -395,11 +395,11 @@ main {
 }
 
 #panel h3 {
-  margin: 0 0 14px;
-  padding-bottom: 10px;
+  margin: 0 0 10px;
+  padding-bottom: 8px;
   border-bottom: 2px solid var(--fhu-gold);
   font-family: var(--font-display);
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   font-weight: 600;
   color: var(--fhu-maroon);
 }
@@ -410,7 +410,7 @@ main {
 
 label {
   display: block;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   font-size: 13px;
   font-weight: 500;
   color: var(--text-muted);
@@ -425,7 +425,7 @@ label textarea {
 
 textarea {
   resize: vertical;
-  min-height: 72px;
+  min-height: 56px;
 }
 
 /* ==========================================================================
@@ -452,43 +452,6 @@ textarea {
 /* ==========================================================================
    9. Media Queries
    ========================================================================== */
-@media (max-width: 800px) {
-  :root {
-    --gap: 8px;
-  }
-
-  /* Sidebar becomes a bottom sheet; the map stays full-screen behind it */
-  #sidebar {
-    top: auto;
-    right: var(--gap);
-    width: auto;
-    max-width: none;
-    height: 46vh;
-  }
-
-  /* Details panel drops to the top, and only shows when a tree is selected */
-  #panel {
-    left: var(--gap);
-    width: auto;
-    max-height: 40vh;
-  }
-
-  #panel:not(:has(#editor:not([hidden]))) {
-    display: none;
-  }
-
-  /* Keep the zoom buttons above the bottom sheet */
-  .leaflet-bottom {
-    bottom: calc(46vh + var(--gap));
-  }
-}
-
-@media (max-width: 768px) {
-  .brand h2 {
-    font-size: 1.1rem;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -543,4 +506,389 @@ textarea {
 .tree-marker.selected .tree-tag {
   background: var(--fhu-gold);
   color: var(--fhu-maroon);
+}
+
+/* ==========================================================================
+   11. Photos & Google Links (details panel)
+   ========================================================================== */
+a.btn {
+  display: inline-block;
+  padding: 7px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text-main);
+  font-weight: 500;
+  text-decoration: none;
+  transition: background-color var(--ease), border-color var(--ease);
+}
+
+a.btn:hover {
+  background: var(--bg-hover);
+  border-color: #c3c9bf;
+}
+
+a.btn:focus-visible {
+  outline: 2px solid var(--fhu-maroon);
+  outline-offset: 2px;
+}
+
+.extras {
+  margin-bottom: 8px;
+}
+
+.photo-strip {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 10px;
+  padding-bottom: 6px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+}
+
+.photo {
+  position: relative;
+  flex: 0 0 85%; /* next photo peeks in so it's clear the strip scrolls */
+  scroll-snap-align: start;
+}
+
+.photo:only-child {
+  flex-basis: 100%;
+}
+
+.photo img {
+  display: block;
+  width: 100%;
+  height: 130px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  background: var(--bg-hover);
+}
+
+.photo-remove {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.65);
+  color: #fff;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.photo-remove:hover {
+  background: var(--danger-color);
+  border: none;
+}
+
+/* ==========================================================================
+   12. Mobile & Touch
+   ========================================================================== */
+
+/* 3-line tab: sits beside the sidebar on desktop (moves to the bottom sheet on phones) */
+.menu-tab {
+  display: flex;
+  position: fixed;
+  top: var(--gap);
+  left: calc(var(--gap) * 2 + var(--sidebar-width));
+  z-index: 20;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  background: var(--surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-float);
+  transition: left 0.25s ease, bottom 0.25s ease, background-color var(--ease);
+}
+
+.menu-tab span {
+  display: block;
+  width: 20px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--fhu-maroon);
+  transition: transform var(--ease), opacity var(--ease);
+}
+
+/* Bars turn into an X while the sidebar is open */
+.menu-tab[aria-expanded="true"] span:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.menu-tab[aria-expanded="true"] span:nth-child(2) {
+  opacity: 0;
+}
+
+.menu-tab[aria-expanded="true"] span:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+/* Closed: the sidebar slides off to the left and the tab moves to the edge */
+#sidebar {
+  transition: transform 0.25s ease, visibility 0s;
+}
+
+body.menu-closed #sidebar {
+  transform: translateX(calc(-100% - var(--gap) * 3));
+  visibility: hidden;
+  transition: transform 0.25s ease, visibility 0s 0.25s;
+}
+
+body.menu-closed .menu-tab {
+  left: var(--gap);
+}
+
+/* Phones and small tablets, portrait: sidebar becomes a bottom sheet */
+@media (max-width: 800px) and (min-height: 501px) {
+  :root {
+    --gap: 8px;
+    --sheet-h: 44vh;
+  }
+
+  @supports (height: 1dvh) {
+    :root {
+      --sheet-h: 44dvh; /* tracks the mobile browser's collapsing address bar */
+    }
+  }
+
+  #sidebar {
+    top: auto;
+    left: var(--gap);
+    right: var(--gap);
+    bottom: max(var(--gap), env(safe-area-inset-bottom));
+    width: auto;
+    max-width: none;
+    height: var(--sheet-h);
+  }
+
+  header {
+    gap: 8px;
+    padding: 8px 12px;
+  }
+
+  .brand {
+    gap: 8px;
+  }
+
+  .brand img.logo {
+    max-height: 2.25rem;
+  }
+
+  .brand h2 {
+    font-size: 1.05rem;
+  }
+
+  #key {
+    padding: 10px 12px 12px;
+  }
+
+  .keyHead {
+    margin-bottom: 8px;
+  }
+
+  #keyList {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  }
+
+  /* Details panel is a card at the top; the sheet steps aside while it's open */
+  #panel {
+    top: max(var(--gap), env(safe-area-inset-top));
+    left: var(--gap);
+    right: var(--gap);
+    width: auto;
+    max-height: 56vh;
+    padding: 10px 12px 12px;
+  }
+
+  @supports (height: 1dvh) {
+    #panel {
+      max-height: 56dvh;
+    }
+  }
+
+  #panel:not(:has(#editor:not([hidden]))) {
+    display: none;
+  }
+
+  body:has(#editor:not([hidden])) #sidebar {
+    display: none;
+  }
+
+  .photo img {
+    height: 90px;
+  }
+
+  /* Keep zoom buttons and attribution above the sheet */
+  .leaflet-bottom {
+    bottom: calc(var(--sheet-h) + var(--gap));
+  }
+
+  body:has(#editor:not([hidden])) .leaflet-bottom {
+    bottom: 0;
+  }
+
+  /* Tab sits just above the sheet; the sheet slides away when it's closed */
+  .menu-tab {
+    top: auto;
+    left: var(--gap);
+    bottom: calc(max(var(--gap), env(safe-area-inset-bottom)) + var(--sheet-h) + var(--gap));
+  }
+
+  #sidebar {
+    transition: transform 0.25s ease, visibility 0s;
+  }
+
+  .leaflet-bottom {
+    transition: bottom 0.25s ease;
+  }
+
+  body.menu-closed #sidebar {
+    transform: translateY(calc(100% + var(--gap) * 3));
+    visibility: hidden;
+    transition: transform 0.25s ease, visibility 0s 0.25s;
+  }
+
+  body.menu-closed .menu-tab {
+    bottom: max(var(--gap), env(safe-area-inset-bottom));
+  }
+
+  body.menu-closed .leaflet-bottom {
+    bottom: 0;
+  }
+
+  /* No tab while the details card is open (the sheet is hidden then anyway) */
+  body:has(#editor:not([hidden])) .menu-tab {
+    display: none;
+  }
+}
+
+/* Short screens (phones in landscape): compact side panels */
+@media (max-height: 500px) {
+  :root {
+    --gap: 8px;
+    --sidebar-width: min(290px, 45vw);
+    --panel-width: min(270px, 45vw);
+  }
+
+  header {
+    gap: 8px;
+    padding: 8px 12px;
+  }
+
+  .brand img.logo {
+    max-height: 2.25rem;
+  }
+
+  .brand h2 {
+    font-size: 1rem;
+  }
+
+  #key {
+    padding: 10px 12px 12px;
+  }
+
+  #keyList {
+    grid-template-columns: 1fr;
+  }
+
+  #panel {
+    padding: 10px 12px 12px;
+    max-height: calc(100% - 2 * var(--gap) - 90px);
+  }
+
+  .photo img {
+    height: 80px;
+  }
+}
+
+@media (max-height: 500px) and (max-width: 800px) {
+  body:has(#editor:not([hidden])) #sidebar,
+  body:has(#editor:not([hidden])) .menu-tab {
+    display: none;
+  }
+}
+
+/* Touch screens: bigger tap targets, and 16px inputs so iOS doesn't zoom on focus */
+@media (pointer: coarse) {
+  button,
+  a.btn {
+    min-height: 40px;
+  }
+
+  a.btn {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .btn-link {
+    min-height: 0;
+    padding: 6px 0;
+  }
+
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
+  .photo-remove {
+    min-height: 0;
+    width: 34px;
+    height: 34px;
+  }
+
+  .leaflet-control-zoom a {
+    width: 40px;
+    height: 40px;
+    line-height: 40px;
+  }
+}
+
+/* ==========================================================================
+   13. Compact Details Panel
+   ========================================================================== */
+#editor p {
+  margin: 4px 0;
+}
+
+@media (max-width: 800px) and (min-height: 501px) {
+  #panel textarea {
+    min-height: 48px;
+  }
+
+  #fCoords {
+    display: none;
+  }
+}
+
+@media (max-height: 500px) {
+  #panel textarea {
+    min-height: 40px;
+  }
+
+  #fCoords {
+    display: none;
+  }
+}
+
+@media (pointer: coarse) {
+  #panel .row button,
+  #panel .row a.btn {
+    min-height: 36px;
+    padding: 4px 10px;
+  }
+
+  #panel input,
+  #panel textarea {
+    padding: 5px 8px;
+  }
 }

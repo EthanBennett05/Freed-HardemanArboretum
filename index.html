@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Freed-Hardeman Arboretum</title>
   <!-- Leaflet (OpenStreetMap) -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -23,6 +23,11 @@
   <script src="./index.js"></script>
 </head>
 <body>
+  <!-- 3-line tab: opens and closes the sidebar -->
+  <button id="btnMenu" class="menu-tab" type="button" aria-label="Show or hide menu" aria-controls="sidebar" aria-expanded="true">
+    <span></span><span></span><span></span>
+  </button>
+
   <!-- Left sidebar: header, toolbar, and tree key -->
   <aside id="sidebar">
     <header>
@@ -73,6 +78,8 @@
       
       <section id="editor" hidden>
         <h3>Tree details</h3>
+
+        <div id="photoStrip" class="photo-strip" hidden></div>
         
         <label for="fTag">ID</label>
         <input id="fTag" type="text" readonly/>
@@ -81,10 +88,17 @@
         <input id="fSpecies" type="text" maxlength="100" autocomplete="off" />
 
         <label for="fNotes">Notes</label>
-        <textarea id="fNotes" rows="6"></textarea>
+        <textarea id="fNotes" rows="3"></textarea>
 
         <p id="fCoords" class="muted"></p>
         <p id="editorError" class="error"></p>
+
+        <div class="row extras">
+          <a id="linkGoogle" class="btn" href="#" target="_blank" rel="noopener noreferrer" hidden>Google it</a>
+          <a id="linkImages" class="btn" href="#" target="_blank" rel="noopener noreferrer" hidden>Google Images</a>
+          <button id="btnAddPhoto" type="button" hidden>Add photo</button>
+          <input id="photoInput" type="file" accept="image/*" multiple hidden />
+        </div>
 
         <div class="row">
           <button id="btnSave">Save</button>

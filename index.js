@@ -1,16 +1,17 @@
 // ---------- Configuration & State ----------
 const CAMPUS_BOUNDS = {
-  north: 35.4430,
-  south: 35.4355,
-  east: -88.632,
-  west: -88.643360
+   north: 35.441250,
+   south: 35.4355,
+   east: -88.632,
+   west: -88.640962
 };
 
 let map, db, canEdit = false, userEmail = "", currentUser = null;
-let trees = []; // { id, tag, species, notes, lat, lng, marker }
+let trees = []; // { id, tag, species, notes, photos, lat, lng, marker }
 let selected = null;
 let adding = false;
 let delArmed = false, delTimer = null;
+const PHOTO_BUCKET = "tree-photos"; // Supabase Storage bucket for tree photos
 
 // Helper utilities
 const $ = (s) => document.querySelector(s);
@@ -20,9 +21,9 @@ const setStatus = (m) => ($("#status").textContent = m);
 window.initMap = async function () {
   map = L.map("map", {
     center: [35.439257, -88.637518], 
-    zoom: 18.25,
-    minZoom: 18,
-    maxZoom: 19,
+     zoom: 18.25,
+     minZoom: 18,
+     maxZoom: 19,
     maxBounds: [
       [CAMPUS_BOUNDS.south, CAMPUS_BOUNDS.west],
       [CAMPUS_BOUNDS.north, CAMPUS_BOUNDS.east]
@@ -61,6 +62,14 @@ function wireUi() {
   $("#btnDelete").addEventListener("click", onDeleteClick);
   $("#btnClose").addEventListener("click", deselect);
   $("#keySearch").addEventListener("input", refreshKey);
+  $("#fSpecies").addEventListener("input", updateGoogleLinks);
+  $("#btnMenu").addEventListener("click", toggleMenu);
+  $("#btnAddPhoto").addEventListener("click", () => $("#photoInput").click());
+  $("#photoInput").addEventListener("change", (e) => {
+    const files = [...e.target.files];
+    e.target.value = ""; // lets the same file be picked again later
+    if (files.length) addPhotos(files);
+  });
   document.addEventListener("keydown", (e) => e.key === "Escape" && setAdding(false));
 
   // --- Auth Button Handlers ---
@@ -127,6 +136,9 @@ function renderAuth() {
   if ($("#dragTip")) $("#dragTip").hidden = !canEdit;
 
   trees.forEach((t) => setDraggable(t.marker, canEdit && t === selected));
+
+  if ($("#btnAddPhoto")) $("#btnAddPhoto").hidden = !canEdit;
+  if (selected) renderPhotos(selected); // remove buttons depend on canEdit
 }
 
 // ---------- Database & Tree Operations ----------
@@ -141,7 +153,7 @@ async function loadTrees() {
 }
 
 function addTree(row) {
-  const t = { id: row.id, tag: row.tag, species: row.species, notes: row.notes, lat: row.lat, lng: row.lng };
+  const t = { id: row.id, tag: row.tag, species: row.species, notes: row.notes, photos: row.photos || [], lat: row.lat, lng: row.lng };
   t.marker = L.marker([t.lat, t.lng], {
     title: label(t),
     icon: pin(t, false),
@@ -227,6 +239,7 @@ async function deleteTree() {
 
   t.marker.remove();
   trees = trees.filter((x) => x !== t);
+  removePhotoFiles(t.photos); // best-effort cleanup of the tree's stored photos
   deselect();
   setStatus(`Deleted ${t.tag}.`);
 }
@@ -280,6 +293,8 @@ function select(t) {
   $("#fNotes").value = t.notes;
   showError("");
   showCoords(t);
+  renderPhotos(t);
+  updateGoogleLinks();
 
   $("#editor").hidden = false;
   $("#hint").hidden = true;
@@ -320,6 +335,135 @@ function setAdding(v) {
   $("#btnAddTree").classList.toggle("active", v);
   $("#btnCancel").hidden = !v;
   if (v) setStatus("Click the map where the tree is located.");
+}
+
+// ---------- Menu Tab ----------
+// Collapses/opens the sidebar (CSS handles the slide for desktop and phone layouts).
+function toggleMenu() {
+  const closed = document.body.classList.toggle("menu-closed");
+  $("#btnMenu").setAttribute("aria-expanded", String(!closed));
+}
+
+// ---------- Google Search ----------
+// Builds Google links from whatever is in the species field (works while typing, too)
+function updateGoogleLinks() {
+  const name = $("#fSpecies").value.trim();
+  const links = [$("#linkGoogle"), $("#linkImages")];
+  links.forEach((a) => (a.hidden = !name));
+  if (!name) return;
+
+  const q = encodeURIComponent(`${name} tree`);
+  $("#linkGoogle").href = `https://www.google.com/search?q=${q}`;
+  $("#linkImages").href = `https://www.google.com/search?q=${q}&tbm=isch`;
+}
+
+// ---------- Photos ----------
+function renderPhotos(t) {
+  const strip = $("#photoStrip");
+  strip.replaceChildren();
+
+  const photos = (t.photos || []).filter((u) => /^https?:\/\//.test(u));
+  strip.hidden = !photos.length;
+
+  photos.forEach((url) => {
+    const item = document.createElement("div");
+    item.className = "photo";
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+
+    const img = document.createElement("img");
+    img.src = url;
+    img.loading = "lazy";
+    img.alt = `${t.species || "Tree"} ${t.tag}`;
+
+    link.append(img);
+    item.append(link);
+
+    if (canEdit) {
+      const rm = document.createElement("button");
+      rm.type = "button";
+      rm.className = "photo-remove";
+      rm.textContent = "×";
+      rm.title = "Remove photo";
+      rm.setAttribute("aria-label", "Remove photo");
+      rm.addEventListener("click", () => removePhoto(t, url));
+      item.append(rm);
+    }
+
+    strip.append(item);
+  });
+}
+
+// Shrinks big phone photos to max 1280px JPEG before upload
+async function resizeImage(file, max = 1280) {
+  const bmp = await createImageBitmap(file, { imageOrientation: "from-image" });
+  const scale = Math.min(1, max / Math.max(bmp.width, bmp.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(bmp.width * scale);
+  canvas.height = Math.round(bmp.height * scale);
+  canvas.getContext("2d").drawImage(bmp, 0, 0, canvas.width, canvas.height);
+  bmp.close?.();
+  return new Promise((resolve, reject) =>
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Could not process image"))), "image/jpeg", 0.85)
+  );
+}
+
+async function addPhotos(files) {
+  if (!selected || !canEdit) return;
+  const t = selected;
+  showError("");
+  setStatus(`Uploading ${files.length} photo${files.length > 1 ? "s" : ""}...`);
+
+  const photos = [...(t.photos || [])];
+  let failed = 0;
+  for (const file of files) {
+    try {
+      const blob = await resizeImage(file);
+      const path = `${t.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
+      const { error } = await db.storage.from(PHOTO_BUCKET).upload(path, blob, { contentType: "image/jpeg" });
+      if (error) throw error;
+      photos.push(db.storage.from(PHOTO_BUCKET).getPublicUrl(path).data.publicUrl);
+    } catch (err) {
+      failed++;
+      if (selected === t) showError("Upload failed: " + err.message);
+    }
+  }
+
+  if (photos.length === (t.photos || []).length) return setStatus("No photos were added.");
+
+  const { error } = await db.from("trees").update({ photos }).eq("id", t.id);
+  if (error) return showError("Could not save photos: " + error.message);
+
+  t.photos = photos;
+  if (selected === t) renderPhotos(t);
+  setStatus(failed ? `Added photos to ${t.tag} (${failed} failed).` : `Added photos to ${t.tag}.`);
+}
+
+async function removePhoto(t, url) {
+  if (!canEdit || !confirm("Remove this photo?")) return;
+  const photos = (t.photos || []).filter((u) => u !== url);
+  const { error } = await db.from("trees").update({ photos }).eq("id", t.id);
+  if (error) return showError("Could not remove photo: " + error.message);
+
+  t.photos = photos;
+  if (selected === t) renderPhotos(t);
+  removePhotoFiles([url]);
+  setStatus(`Removed photo from ${t.tag}.`);
+}
+
+// Storage path = everything after "/tree-photos/" in the public URL
+function photoPath(url) {
+  const marker = `/${PHOTO_BUCKET}/`;
+  const i = url.indexOf(marker);
+  return i === -1 ? null : decodeURIComponent(url.slice(i + marker.length).split("?")[0]);
+}
+
+function removePhotoFiles(urls) {
+  const paths = (urls || []).map(photoPath).filter(Boolean);
+  if (paths.length) db.storage.from(PHOTO_BUCKET).remove(paths); // best-effort
 }
 
 // ---------- Interactive Species Key ----------
