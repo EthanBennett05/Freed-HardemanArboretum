@@ -189,8 +189,8 @@ async function onMapClick(e) {
 
 function nextTag() {
   let n = 1;
-  while (trees.some((t) => t.tag === `T-${String(n).padStart(3, "0")}`)) n++;
-  return `T-${String(n).padStart(3, "0")}`;
+  while (trees.some((t) => t.tag === `Tree #${String(n).padStart(1 ,"0")}`)) n++;
+  return `Tree #${String(n).padStart(1, "0")}`;
 }
 
 async function saveTree() {
