@@ -23,42 +23,43 @@
   <script src="./index.js"></script>
 </head>
 <body>
+  <!-- Top bar: logo, title, and sign in / sign out -->
+  <header>
+    <!-- Brand / Logo -->
+    <div class="brand">
+      <img src="imgs/Logo.jpeg" alt="Freed-Hardeman Arboretum" class="logo">
+      <h2>Freed-Hardeman Arboretum</h2>
+    </div>
+
+    <!-- User Auth / Sign Out -->
+    <div class="user-auth">
+      <button id="btnShowLogin">Admin sign in with Google</button>
+
+      <div id="userProfile" class="user-profile" hidden>
+        <img id="userAvatar" class="avatar" src="" alt="Profile Picture">
+        <div class="user-details">
+          <span id="userLabel"></span>
+          <button id="btnSignOut" class="btn-link">Sign out</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
   <!-- 3-line tab: opens and closes the sidebar -->
   <button id="btnMenu" class="menu-tab" type="button" aria-label="Show or hide menu" aria-controls="sidebar" aria-expanded="true">
     <span></span><span></span><span></span>
   </button>
 
-  <!-- Left sidebar: header, toolbar, and tree key -->
+  <!-- Left sidebar: toolbar and tree key -->
   <aside id="sidebar">
-    <header>
-      <div class="header-top">
-        <!-- Brand / Logo -->
-        <div class="brand">
-          <img src="imgs/Logo.jpeg" alt="Freed-Hardeman Arboretum" class="logo">
-          <h2>Freed-Hardeman Arboretum</h2>
-        </div>
-
-        <!-- User Auth / Sign Out -->
-        <div class="user-auth">
-          <button id="btnShowLogin">Admin sign in with Google</button>
-
-          <div id="userProfile" class="user-profile" hidden>
-            <img id="userAvatar" class="avatar" src="" alt="Profile Picture">
-            <div class="user-details">
-              <span id="userLabel"></span>
-              <button id="btnSignOut" class="btn-link">Sign out</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Action Toolbar -->
+    <!-- Action Toolbar -->
+    <div class="sidebar-top">
       <div class="toolbar">
         <button id="btnAddTree" hidden>+ Add Tree</button>
         <button id="btnCancel" hidden>Cancel</button>
         <p id="status" class="status-msg"></p>
       </div>
-    </header>
+    </div>
 
     <section id="key">
       <div class="keyHead">
@@ -82,7 +83,7 @@
         <div id="photoStrip" class="photo-strip" hidden></div>
         
         <label for="fTag">ID</label>
-        <input id="fTag" type="text" readonly/>
+        <input id="fTag" type="text" maxlength="40" autocomplete="off" />
 
         <label for="fSpecies">Species / name</label>
         <input id="fSpecies" type="text" maxlength="100" autocomplete="off" />
