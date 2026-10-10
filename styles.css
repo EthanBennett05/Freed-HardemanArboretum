@@ -308,6 +308,13 @@ main {
   z-index: 0; /* keeps Leaflet panes below the sidebar and panel */
 }
 
+/* "+" cursor while placing a new tree (overrides Leaflet's grab/pointer cursors) */
+#map.adding,
+#map.adding .leaflet-interactive,
+#map.adding .leaflet-marker-draggable {
+  cursor: crosshair !important;
+}
+
 /* ==========================================================================
    6. Key / Species Legend Section
    ========================================================================== */

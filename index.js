@@ -334,6 +334,7 @@ function setAdding(v) {
   adding = v;
   $("#btnAddTree").classList.toggle("active", v);
   $("#btnCancel").hidden = !v;
+  $("#map").classList.toggle("adding", v); // + cursor while placing a tree
   if (v) setStatus("Click the map where the tree is located.");
 }
 
