@@ -2,12 +2,11 @@
 const CAMPUS_BOUNDS = {
   north: 35.4430,
   south: 35.4355,
-  east: -88.633480,
-  west: -88.641471
+  east: -88.632,
+  west: -88.643360
 };
 
 let map, db, canEdit = false, userEmail = "", currentUser = null;
-let AdvancedMarkerElement, PinElement;
 let trees = []; // { id, tag, species, notes, lat, lng, marker }
 let selected = null;
 let adding = false;
@@ -16,24 +15,31 @@ let delArmed = false, delTimer = null;
 // Helper utilities
 const $ = (s) => document.querySelector(s);
 const setStatus = (m) => ($("#status").textContent = m);
-const num = (v) => (typeof v === "function" ? v() : v);
 
 // ---------- Map Initialization ----------
 window.initMap = async function () {
-  await customElements.whenDefined("gmp-map");
-  map = $("#map").innerMap;
-  ({ AdvancedMarkerElement, PinElement } = await google.maps.importLibrary("marker"));
+  map = L.map("map", {
+    center: [35.439257, -88.637518], 
+    zoom: 18.25,
+    minZoom: 18,
+    maxZoom: 19,
+    maxBounds: [
+      [CAMPUS_BOUNDS.south, CAMPUS_BOUNDS.west],
+      [CAMPUS_BOUNDS.north, CAMPUS_BOUNDS.east]
+    ],
+    maxBoundsViscosity: 1.0, // Strict bounds: can't pan outside campus
+    zoomControl: false       // Added below so it can sit bottom-right, clear of the sidebar
+  });
 
-  map.setOptions({
-  restriction: { latLngBounds: CAMPUS_BOUNDS, strictBounds: true },
-  minZoom: 16,
-  maxZoom: 20,
-  mapTypeId: "satellite",     // Satellite imagery without road/place labels
-  disableDefaultUI: true,     // Removes Map/Satellite dropdown, Street View, and Fullscreen buttons
-  zoomControl: true           // (Optional) Keeps simple + / - zoom buttons visible
-});
+  L.control.zoom({ position: "bottomright" }).addTo(map); // Simple + / - zoom buttons
 
-  map.addListener("click", onMapClick);
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxNativeZoom: 19,       // OSM tiles stop at 19; zoom 20 upscales them
+    maxZoom: 20,
+    attribution: "&copy; OpenStreetMap contributors"
+  }).addTo(map);
+
+  map.on("click", onMapClick);
   wireUi();
 
   const { SUPABASE_URL: url, SUPABASE_ANON_KEY: key } = window.APP_CONFIG || {};
@@ -120,7 +126,7 @@ function renderAuth() {
   if ($("#btnDelete")) $("#btnDelete").hidden = !canEdit;
   if ($("#dragTip")) $("#dragTip").hidden = !canEdit;
 
-  trees.forEach((t) => (t.marker.gmpDraggable = canEdit && t === selected));
+  trees.forEach((t) => setDraggable(t.marker, canEdit && t === selected));
 }
 
 // ---------- Database & Tree Operations ----------
@@ -128,7 +134,7 @@ async function loadTrees() {
   const { data, error } = await db.from("trees").select("*").order("tag");
   if (error) return setStatus("Could not load trees: " + error.message);
   
-  trees.forEach((t) => (t.marker.map = null));
+  trees.forEach((t) => t.marker.remove());
   trees = [];
   data.forEach(addTree);
   refreshKey();
@@ -136,19 +142,17 @@ async function loadTrees() {
 
 function addTree(row) {
   const t = { id: row.id, tag: row.tag, species: row.species, notes: row.notes, lat: row.lat, lng: row.lng };
-  t.marker = new AdvancedMarkerElement({
-    map,
-    position: { lat: t.lat, lng: t.lng },
+  t.marker = L.marker([t.lat, t.lng], {
     title: label(t),
-    content: pin(false),
-    gmpClickable: true,
-    gmpDraggable: false
-  });
+    icon: pin(t, false),
+    draggable: false
+  }).addTo(map);
 
-  t.marker.addEventListener("gmp-click", () => select(t));
-  t.marker.addEventListener("dragend", async () => {
-    t.lat = num(t.marker.position.lat);
-    t.lng = num(t.marker.position.lng);
+  t.marker.on("click", () => select(t));
+  t.marker.on("dragend", async () => {
+    const pos = t.marker.getLatLng();
+    t.lat = pos.lat;
+    t.lng = pos.lng;
     if (selected === t) showCoords(t);
     const { error } = await db.from("trees").update({ lat: t.lat, lng: t.lng }).eq("id", t.id);
     if (error) setStatus("Could not save new position: " + error.message);
@@ -162,7 +166,7 @@ async function onMapClick(e) {
   if (!adding || !canEdit) return;
   setAdding(false);
 
-  const row = { tag: nextTag(), species: "", notes: "", lat: e.latLng.lat(), lng: e.latLng.lng() };
+  const row = { tag: nextTag(), species: "", notes: "", lat: e.latlng.lat, lng: e.latlng.lng };
   const { data, error } = await db.from("trees").insert(row).select().single();
   if (error) return setStatus("Could not add tree: " + error.message);
 
@@ -190,7 +194,9 @@ async function saveTree() {
   if (error) return showError(error.code === "23505" ? `ID "${tag}" is already used.` : error.message);
 
   Object.assign(selected, fields);
-  selected.marker.title = label(selected);
+  setMarkerTitle(selected);
+  selected.marker.setIcon(pin(selected, true)); // refresh the ID label
+  setDraggable(selected.marker, canEdit);
   showError("");
   refreshKey();
   setStatus(`Saved ${tag}.`);
@@ -219,7 +225,7 @@ async function deleteTree() {
   const { data, error } = await db.from("trees").delete().eq("id", t.id).select();
   if (error || !data.length) return showError(error ? error.message : "Not allowed to delete.");
 
-  t.marker.map = null;
+  t.marker.remove();
   trees = trees.filter((x) => x !== t);
   deselect();
   setStatus(`Deleted ${t.tag}.`);
@@ -230,12 +236,39 @@ function label(t) {
   return t.species ? `${t.tag}\n${t.species}` : t.tag;
 }
 
-function pin(sel) {
-  return new PinElement({
-    background: sel ? "#c59b27" : "#701422", // FHU Gold for selected, FHU Maroon for markers
-    borderColor: "#ffffff",
-    glyphColor: "#ffffff",
-    scale: sel ? 1.3 : 1
+function setMarkerTitle(t) {
+  t.marker.options.title = label(t);
+  const el = t.marker.getElement();
+  if (el) el.title = label(t);
+}
+
+function setDraggable(marker, on) {
+  if (!marker.dragging) return;
+  if (on) marker.dragging.enable();
+  else marker.dragging.disable();
+}
+
+// Tree marker: 🌳 emoji with the tree's ID underneath. Selected trees are larger
+// and highlighted gold (see styles.css). Built with DOM nodes + textContent so
+// a tag containing HTML characters can't inject markup.
+function pin(t, sel) {
+  const wrap = document.createElement("div");
+  wrap.className = "tree-marker" + (sel ? " selected" : "");
+
+  const emoji = document.createElement("div");
+  emoji.className = "tree-emoji";
+  emoji.textContent = "🌳";
+
+  const tag = document.createElement("div");
+  tag.className = "tree-tag";
+  tag.textContent = t.tag;
+
+  wrap.append(emoji, tag);
+  return L.divIcon({
+    className: "tree-icon",
+    html: wrap,
+    iconSize: [64, 48],
+    iconAnchor: [32, 28] // bottom-center of the emoji = the tree's location
   });
 }
 
@@ -252,8 +285,8 @@ function select(t) {
   $("#hint").hidden = true;
 
   trees.forEach((x) => {
-    x.marker.content = pin(x === t);
-    x.marker.gmpDraggable = canEdit && x === t;
+    x.marker.setIcon(pin(x, x === t));
+    setDraggable(x.marker, canEdit && x === t);
   });
 
   refreshKey();
@@ -267,8 +300,8 @@ function deselect() {
   $("#hint").hidden = false;
 
   trees.forEach((x) => {
-    x.marker.content = pin(false);
-    x.marker.gmpDraggable = false;
+    x.marker.setIcon(pin(x, false));
+    setDraggable(x.marker, false);
   });
 
   refreshKey();
@@ -327,11 +360,14 @@ function refreshKey() {
 
     chip.append(name, tag);
     chip.addEventListener("click", () => {
-      map.panTo({ lat: t.lat, lng: t.lng });
-      if (map.getZoom() < 19) map.setZoom(19);
+      map.setView([t.lat, t.lng], Math.max(map.getZoom(), 19));
       select(t);
     });
 
     list.append(chip);
   });
 }
+
+// ---------- Start ----------
+// Google Maps used to call initMap via a script callback; Leaflet has no callback, so start on page load.
+document.addEventListener("DOMContentLoaded", () => window.initMap());

@@ -1,17 +1,43 @@
 /* ==========================================================================
-   1. CSS Variables & Reset
+   1. Design Tokens & Reset
    ========================================================================== */
 :root {
+  /* Brand */
   --fhu-maroon: #701422;
+  --fhu-maroon-dark: #561019;
   --fhu-gold: #c59b27;
   --gold-light: #fef7e0;
-  --text-main: #202124;
-  --text-muted: #5f6368;
-  --bg-light: #fafafa;
-  --bg-hover: #f1f3f4;
-  --border-color: #dadce0;
-  --danger-color: #d93025;
+
+  /* Arboretum accent: used sparingly for "living" details */
+  --leaf: #3f6b4a;
+  --leaf-light: #eaf1ea;
+
+  /* Neutrals (slightly green-tinted to sit well next to the map) */
+  --text-main: #1f2420;
+  --text-muted: #5b625d;
+  --bg-light: #f6f7f4;
+  --bg-hover: #edf0ea;
+  --surface: #ffffff;
+  --border-color: #d9ddd5;
+  --danger-color: #c5281c;
+
+  /* Shape & depth */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --shadow-soft: 0 1px 2px rgba(31, 36, 32, 0.06), 0 2px 8px rgba(31, 36, 32, 0.05);
+  --shadow-float: 0 2px 6px rgba(31, 36, 32, 0.18), 0 8px 24px rgba(31, 36, 32, 0.18);
+
+  /* Layout */
+  --gap: 12px;
+  --sidebar-width: 360px;
+  --panel-width: 320px;
+
+  /* Type */
   --font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+
+  /* Motion */
+  --ease: 0.15s ease;
 }
 
 *,
@@ -32,30 +58,53 @@ body {
   height: 100%;
   margin: 0;
   font-family: var(--font-family);
+  font-size: 15px;
+  line-height: 1.45;
   color: var(--text-main);
+  -webkit-font-smoothing: antialiased;
 }
 
 body {
-  display: flex;
-  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg-light);
 }
 
 /* ==========================================================================
-   3. Header
+   3. Left Sidebar (header + toolbar + key)
    ========================================================================== */
-header {
+#sidebar {
+  position: fixed;
+  top: var(--gap);
+  left: var(--gap);
+  bottom: var(--gap);
+  z-index: 10;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border-color, #dadce0);
-  background-color: #fff;
+  width: var(--sidebar-width);
+  max-width: calc(100vw - 2 * var(--gap));
+  overflow: hidden;
+  background: var(--surface);
+  border-top: 4px solid var(--fhu-maroon);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-float);
+}
+
+header {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px;
+  background-color: var(--surface);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .header-top {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
+  gap: 10px;
   width: 100%;
 }
 
@@ -66,17 +115,22 @@ header {
 }
 
 .brand img.logo {
-  max-height: 3.5rem;
+  max-height: 3rem;
   width: auto;
   border-radius: 4px;
 }
 
 .brand h2 {
   margin: 0;
-  font-size: 1.4rem;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  color: var(--fhu-maroon);
 }
 
-/* Top-Right Profile Section */
+/* Profile section */
 .user-auth {
   display: flex;
   align-items: center;
@@ -93,52 +147,65 @@ header {
   height: 38px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid var(--fhu-gold, #c59b27);
+  border: 2px solid var(--fhu-gold);
+  box-shadow: 0 0 0 2px var(--surface);
 }
 
 .user-details {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: flex-start;
   font-size: 13px;
 }
 
 .user-details #userEmail {
   font-weight: 600;
-  color: var(--text-main, #202124);
+  color: var(--text-main);
 }
 
-/* Minimalist link style for Sign Out button */
+/* Minimal link-style Sign Out button */
 .btn-link {
   background: none;
   border: none;
   padding: 0;
-  color: var(--danger-color, #d93025);
+  color: var(--danger-color);
   font-size: 12px;
   cursor: pointer;
   text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .btn-link:hover {
   background: none;
-  color: #a51d24;
+  color: #9c1d14;
 }
 
-/* Toolbar under header */
+/* Toolbar */
 .toolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
 }
-
-/* ==========================================================================
-   4. Toolbar & Interactive Elements
-   ========================================================================== */
 
 .toolbar .spacer {
   flex: 1;
 }
 
+.status-msg {
+  flex: 1 1 100%;
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.status-msg:empty {
+  display: none;
+}
+
+/* ==========================================================================
+   4. Interactive Elements
+   ========================================================================== */
 #loginForm {
   display: flex;
   flex-wrap: wrap;
@@ -148,30 +215,29 @@ header {
 }
 
 button {
-  padding: 6px 12px;
+  padding: 7px 14px;
   border: 1px solid var(--border-color);
-  border-radius: 6px;
-  background: #fff;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
   color: var(--text-main);
   cursor: pointer;
   font: inherit;
-  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
-}
-
-#fTag {
-  user-select: none;
-  background: #f1f3f4;
-  color: var(--text-muted);
-  cursor: not-allowed;
+  font-weight: 500;
+  transition: background-color var(--ease), border-color var(--ease), color var(--ease);
 }
 
 button:hover {
   background: var(--bg-hover);
+  border-color: #c3c9bf;
+}
+
+button:active {
+  background: #e3e8de;
 }
 
 button:focus-visible {
   outline: 2px solid var(--fhu-maroon);
-  outline-offset: 1px;
+  outline-offset: 2px;
 }
 
 button.active {
@@ -185,52 +251,71 @@ button.danger {
   color: var(--danger-color);
 }
 
+button.danger:hover {
+  background: #fdecea;
+  border-color: #f0b8b3;
+}
+
+#fTag {
+  user-select: none;
+  background: var(--bg-hover);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+#fTag:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-color);
+}
+
 input,
 select,
 textarea {
-  padding: 6px 8px;
+  padding: 7px 10px;
   border: 1px solid var(--border-color);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
   font: inherit;
   color: var(--text-main);
+  transition: border-color var(--ease), box-shadow var(--ease);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #9aa19c;
 }
 
 input:focus,
 select:focus,
 textarea:focus {
-  outline: 2px solid var(--fhu-maroon);
-  border-color: transparent;
+  outline: none;
+  border-color: var(--fhu-maroon);
+  box-shadow: 0 0 0 3px rgba(112, 20, 34, 0.15);
 }
 
 /* ==========================================================================
-   5. Main Content Layout
+   5. Full-Page Map
    ========================================================================== */
 main {
-  flex: 1;
-  display: flex;
-  min-height: 0;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
 }
 
-.left {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-gmp-map {
-  flex: 1 1 60%;
-  min-height: 260px;
+#map {
+  position: absolute;
+  inset: 0;
+  z-index: 0; /* keeps Leaflet panes below the sidebar and panel */
 }
 
 /* ==========================================================================
    6. Key / Species Legend Section
    ========================================================================== */
 #key {
-  flex: 0 0 36%;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
-  padding: 8px 14px;
-  border-top: 1px solid var(--border-color);
+  padding: 14px 16px 16px;
   background: var(--bg-light);
 }
 
@@ -240,23 +325,25 @@ gmp-map {
   gap: 8px;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 
 .keyHead h3 {
   margin: 0;
-  font-size: 16px;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--fhu-maroon);
 }
 
 .keyHead input {
-  flex: 1 1 220px;
-  max-width: 320px;
+  flex: 1 1 100%;
 }
 
 #keyList {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 6px;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
 }
 
 .chip {
@@ -264,10 +351,19 @@ gmp-map {
   flex-direction: column;
   text-align: left;
   gap: 2px;
+  padding: 8px 12px;
+  background: var(--surface);
+  border-left: 3px solid var(--leaf);
+}
+
+.chip:hover {
+  background: var(--leaf-light);
 }
 
 .chip span {
   font-size: 13px;
+  font-weight: 400;
+  font-style: italic; /* secondary line is typically the scientific name */
   color: var(--text-muted);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -277,28 +373,46 @@ gmp-map {
 .chip.active {
   background: var(--gold-light);
   border-color: var(--fhu-gold);
+  border-left-color: var(--fhu-maroon);
 }
 
 /* ==========================================================================
-   7. Details & Edit Panel
+   7. Details & Edit Panel (floats over the map, top right)
    ========================================================================== */
 #panel {
-  width: 320px;
+  position: absolute;
+  top: var(--gap);
+  right: var(--gap);
+  z-index: 10;
+  width: var(--panel-width);
+  max-height: calc(100% - 2 * var(--gap) - 110px); /* leave room for the zoom buttons */
   overflow-y: auto;
-  padding: 12px 14px;
-  border-left: 1px solid var(--border-color);
-  background: var(--bg-light);
+  padding: 18px 18px 24px;
+  background: var(--surface);
+  border-top: 4px solid var(--fhu-gold);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-float);
 }
 
 #panel h3 {
-  margin: 4px 0 10px;
-  font-size: 16px;
+  margin: 0 0 14px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--fhu-gold);
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--fhu-maroon);
+}
+
+#hint {
+  margin: 0;
 }
 
 label {
   display: block;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   font-size: 13px;
+  font-weight: 500;
   color: var(--text-muted);
 }
 
@@ -306,7 +420,12 @@ label input,
 label textarea {
   display: block;
   width: 100%;
-  margin-top: 3px;
+  margin-top: 4px;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 72px;
 }
 
 /* ==========================================================================
@@ -314,7 +433,7 @@ label textarea {
    ========================================================================== */
 .row {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
@@ -334,25 +453,94 @@ label textarea {
    9. Media Queries
    ========================================================================== */
 @media (max-width: 800px) {
-  main {
-    flex-direction: column;
-    overflow-y: auto;
+  :root {
+    --gap: 8px;
   }
 
-  .left {
-    flex: none;
-    height: 80vh;
+  /* Sidebar becomes a bottom sheet; the map stays full-screen behind it */
+  #sidebar {
+    top: auto;
+    right: var(--gap);
+    width: auto;
+    max-width: none;
+    height: 46vh;
   }
 
+  /* Details panel drops to the top, and only shows when a tree is selected */
   #panel {
-    width: 100%;
-    border-left: none;
-    border-top: 1px solid var(--border-color);
+    left: var(--gap);
+    width: auto;
+    max-height: 40vh;
+  }
+
+  #panel:not(:has(#editor:not([hidden]))) {
+    display: none;
+  }
+
+  /* Keep the zoom buttons above the bottom sheet */
+  .leaflet-bottom {
+    bottom: calc(46vh + var(--gap));
   }
 }
 
 @media (max-width: 768px) {
-  header {
-    padding: 6px 10px;
+  .brand h2 {
+    font-size: 1.1rem;
   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+  }
+}
+
+/* ==========================================================================
+   10. Tree Markers (Leaflet)
+   ========================================================================== */
+.tree-icon {
+  background: none;
+  border: none;
+}
+
+.tree-marker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  transform-origin: 50% 28px; /* scale around the tree's base */
+  transition: transform 0.15s ease;
+}
+
+.tree-emoji {
+  font-size: 26px;
+  line-height: 30px;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.55));
+}
+
+.tree-tag {
+  margin-top: 1px;
+  padding: 1px 6px;
+  border-radius: 8px;
+  background: var(--fhu-maroon);
+  border: 1px solid #fff;
+  color: #fff;
+  font: 600 11px/14px var(--font-family);
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.tree-marker.selected {
+  transform: scale(1.3);
+}
+
+.tree-marker.selected .tree-emoji {
+  filter: drop-shadow(0 0 3px var(--fhu-gold)) drop-shadow(0 0 6px var(--fhu-gold));
+}
+
+.tree-marker.selected .tree-tag {
+  background: var(--fhu-gold);
+  color: var(--fhu-maroon);
 }

@@ -4,10 +4,15 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Freed-Hardeman Arboretum</title>
+  <!-- Leaflet (OpenStreetMap) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="./styles.css" />
   <link rel="icon" type="image/jpeg" href="imgs/Logo.jpeg">
   
   
+  <!-- Leaflet SDK -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
   <!-- Supabase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
   
@@ -16,65 +21,52 @@
   
   <!-- Main Application Logic -->
   <script src="./index.js"></script>
-
-  <!-- Dynamic Google Maps Loader -->
-  <script>
-    (function loadGoogleMaps() {
-      const apiKey = window.APP_CONFIG?.GOOGLE_MAPS_API_KEY;
-      if (!apiKey || apiKey.includes("YOUR_")) {
-        console.warn("Google Maps API key is missing from config.js.");
-        return;
-      }
-      const script = document.createElement("script");
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=maps,marker&v=weekly&loading=async&callback=initMap`;
-      script.async = true;
-      document.head.appendChild(script);
-    })();
-  </script>
 </head>
 <body>
-  <header>
-  <div class="header-top">
-    <!-- Brand / Logo -->
-    <div class="brand">
-      <img src="imgs/Logo.jpeg" alt="Freed-Hardeman Arboretum" class="logo">
-      <h2>Freed-Hardeman Arboretum</h2>
-    </div>
+  <!-- Left sidebar: header, toolbar, and tree key -->
+  <aside id="sidebar">
+    <header>
+      <div class="header-top">
+        <!-- Brand / Logo -->
+        <div class="brand">
+          <img src="imgs/Logo.jpeg" alt="Freed-Hardeman Arboretum" class="logo">
+          <h2>Freed-Hardeman Arboretum</h2>
+        </div>
 
-    <!-- User Auth / Sign Out (Top Right) -->
-    <div class="user-auth">
-      <button id="btnShowLogin">Admin sign in with Google</button>
+        <!-- User Auth / Sign Out -->
+        <div class="user-auth">
+          <button id="btnShowLogin">Admin sign in with Google</button>
 
-      <div id="userProfile" class="user-profile" hidden>
-        <img id="userAvatar" class="avatar" src="" alt="Profile Picture">
-        <div class="user-details">
-          <span id="userLabel"></span>
-          <button id="btnSignOut" class="btn-link">Sign out</button>
+          <div id="userProfile" class="user-profile" hidden>
+            <img id="userAvatar" class="avatar" src="" alt="Profile Picture">
+            <div class="user-details">
+              <span id="userLabel"></span>
+              <button id="btnSignOut" class="btn-link">Sign out</button>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- Action Toolbar (Underneath Header) -->
-  <div class="toolbar">
-    <button id="btnAddTree" hidden>+ Add Tree</button>
-    <button id="btnCancel" hidden>Cancel</button>
-    <p id="status" class="status-msg"></p>
-  </div>
-</header>
+      <!-- Action Toolbar -->
+      <div class="toolbar">
+        <button id="btnAddTree" hidden>+ Add Tree</button>
+        <button id="btnCancel" hidden>Cancel</button>
+        <p id="status" class="status-msg"></p>
+      </div>
+    </header>
 
+    <section id="key">
+      <div class="keyHead">
+        <h3>Tree key <span id="keyCount" class="muted"></span></h3>
+        <input id="keySearch" type="search" placeholder="Search by ID, species, notes" aria-label="Search trees" />
+      </div>
+      <div id="keyList"></div>
+    </section>
+  </aside>
+
+  <!-- Full-page map with the details panel floating on the right -->
   <main>
-    <div class="left">
-      <gmp-map id="map" center="35.4423,-88.6370" zoom="17" map-id="DEMO_MAP_ID"></gmp-map>
-
-      <section id="key">
-        <div class="keyHead">
-          <h3>Tree key <span id="keyCount" class="muted"></span></h3>
-          <input id="keySearch" type="search" placeholder="Search by ID, species, notes" aria-label="Search trees" />
-        </div>
-        <div id="keyList"></div>
-      </section>
-    </div>
+    <div id="map"></div>
 
     <aside id="panel">
       <p id="hint" class="muted">Click a tree on the map or in the key to see its details.</p>
