@@ -1,8 +1,8 @@
 // ---------- Configuration & State ----------
 const CAMPUS_BOUNDS = {
    north: 35.441250,
-   south: 35.4355,
-   east: -88.632,
+   south: 35.437061,
+   east: -88.633618,
    west: -88.640962
 };
 
@@ -22,7 +22,7 @@ window.initMap = async function () {
   map = L.map("map", {
     center: [35.439257, -88.637518], 
      zoom: 18.25,
-     minZoom: 18,
+     minZoom: 17.5,
      maxZoom: 19,
     maxBounds: [
       [CAMPUS_BOUNDS.south, CAMPUS_BOUNDS.west],
